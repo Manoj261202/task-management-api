@@ -1,0 +1,15 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Environment variable files
+.env
+
+# SQLite database (agar local hai)
+*.db
+
+# VSCode settings folder
+.vscode/
+
+# Docker related (optional)
+*.log
