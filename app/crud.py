@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
 from passlib.hash import bcrypt
-from sqlalchemy import and_
 
+# ---------- USERS ----------
 def create_user(db: Session, user: schemas.UserCreate):
     hashed = bcrypt.hash(user.password)
     db_user = models.User(email=user.email, hashed_password=hashed)
@@ -17,6 +17,7 @@ def get_user_by_email(db: Session, email: str):
 def get_user_by_id(db: Session, user_id: int):
     return db.query(models.User).filter(models.User.id == user_id).first()
 
+# ---------- PROJECTS ----------
 def create_project(db: Session, project: schemas.ProjectCreate, owner_id: int):
     db_project = models.Project(name=project.name, description=project.description, owner_id=owner_id)
     db.add(db_project)
@@ -48,6 +49,7 @@ def delete_project(db: Session, project_id: int, owner_id: int):
     db.commit()
     return True
 
+# ---------- TASKS ----------
 def create_task(db: Session, task: schemas.TaskCreate):
     db_task = models.Task(
         title=task.title,
@@ -63,8 +65,8 @@ def create_task(db: Session, task: schemas.TaskCreate):
     db.refresh(db_task)
     return db_task
 
-def get_tasks_filtered(db: Session, skip: int = 0, limit: int = 10, status=None, priority=None, project_id=None, due_date=None, sort_by=None, sort_order="asc"):
-    q = db.query(models.Task)
+def get_tasks_filtered(db: Session, owner_id: int, skip: int = 0, limit: int = 10, status=None, priority=None, project_id=None, due_date=None):
+    q = db.query(models.Task).join(models.Project).filter(models.Project.owner_id == owner_id)
     if status:
         q = q.filter(models.Task.status == status)
     if priority is not None:
@@ -73,12 +75,6 @@ def get_tasks_filtered(db: Session, skip: int = 0, limit: int = 10, status=None,
         q = q.filter(models.Task.project_id == project_id)
     if due_date:
         q = q.filter(models.Task.due_date == due_date)
-    
-    if sort_by in ["priority", "due_date"]:
-        col = getattr(models.Task, sort_by)
-        if sort_order == "desc":
-            col = col.desc()
-        q = q.order_by(col)
     return q.offset(skip).limit(limit).all()
 
 def get_task(db: Session, task_id: int):
@@ -94,8 +90,13 @@ def update_task(db: Session, task_id: int, task_update: schemas.TaskCreate):
     task = get_task(db, task_id)
     if not task:
         return None
-    for field, value in task_update.dict(exclude_unset=True).items():
-        setattr(task, field, value)
+    task.title = task_update.title
+    task.description = task_update.description
+    task.status = task_update.status
+    task.priority = task_update.priority
+    task.due_date = task_update.due_date
+    task.project_id = task_update.project_id
+    task.assigned_user_id = task_update.assigned_user_id
     db.commit()
     db.refresh(task)
     return task
@@ -107,16 +108,3 @@ def delete_task(db: Session, task_id: int):
     db.delete(task)
     db.commit()
     return True
-
-
-def get_tasks_filtered(db: Session, user_id: int, skip: int = 0, limit: int = 10, status=None, priority=None, project_id=None, due_date=None):
-    q = db.query(models.Task).join(models.Project).filter(models.Project.owner_id == user_id)
-    if status:
-        q = q.filter(models.Task.status == status)
-    if priority is not None:
-        q = q.filter(models.Task.priority == priority)
-    if project_id:
-        q = q.filter(models.Task.project_id == project_id)
-    if due_date:
-        q = q.filter(models.Task.due_date == due_date)
-    return q.offset(skip).limit(limit).all()

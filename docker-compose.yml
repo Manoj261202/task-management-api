@@ -1,14 +1,14 @@
 version: "3.9"
 
 services:
-  celery:
-    build: .
-    command: celery -A app.celery_worker worker --concurrency=1 --loglevel=info
-    depends_on:
-      - redis
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_BACKEND_URL=redis://redis:6379/0
+  # celery:
+  #   build: .
+  #   command: celery -A app.celery_worker worker --concurrency=1 --loglevel=info
+  #   depends_on:
+  #     - redis
+  #   environment:
+  #     - CELERY_BROKER_URL=redis://redis:6379/0
+  #     - CELERY_BACKEND_URL=redis://redis:6379/0
       
   redis:
     image: redis:7
